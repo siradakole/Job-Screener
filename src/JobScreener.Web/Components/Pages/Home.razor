@@ -31,28 +31,26 @@
     </div>
 }
 
-@if (State.HasProfile)
-{
-    <div class="card">
-        <p>Saved profile: <strong>@State.Handle</strong></p>
-        <button class="danger" @onclick="DeleteData">Delete my data</button>
-        @if (deleted) { <span class="muted"> Your data was deleted.</span> }
-    </div>
-}
+<div class="card">
+    <h2>Delete my data</h2>
+    <p class="muted">Removes the resume text, skills and search history stored for the handle typed above.</p>
+    <button class="danger" @onclick="DeleteData">Delete my data</button>
+    @if (deleteMessage is not null) { <span class="muted"> @deleteMessage</span> }
+</div>
 
 @code {
     private string handle = "";
     private string extraSkills = "";
     private string status = "";
     private string? error;
-    private bool deleted;
+    private string? deleteMessage;
     private ParsedResume? parsed;
 
     protected override void OnInitialized() => handle = State.Handle;
 
     private async Task OnFileChosen(InputFileChangeEventArgs e)
     {
-        error = null; deleted = false;
+        error = null; deleteMessage = null;
         try
         {
             await using var stream = e.File.OpenReadStream(5 * 1024 * 1024);
@@ -90,8 +88,19 @@
 
     private async Task DeleteData()
     {
-        await Store.DeleteAsync(State.Handle);
-        State.Handle = ""; State.Skills = Array.Empty<string>(); State.SuggestedTitles = Array.Empty<string>();
-        parsed = null; deleted = true;
+        deleteMessage = null;
+        try
+        {
+            var key = HandleNormalizer.Normalize(handle);
+            var found = await Store.DeleteAsync(key);
+            if (key == State.Handle)
+            {
+                State.Handle = ""; State.Skills = Array.Empty<string>(); State.SuggestedTitles = Array.Empty<string>();
+                State.YearsExperience = null;
+                parsed = null;
+            }
+            deleteMessage = found ? "Deleted." : "No data found for that handle.";
+        }
+        catch (ArgumentException ex) { deleteMessage = ex.Message; }
     }
 }

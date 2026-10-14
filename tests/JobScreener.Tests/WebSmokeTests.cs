@@ -20,4 +20,11 @@ public class WebSmokeTests(WebApplicationFactory<Program> factory) : IClassFixtu
         Assert.Contains("LinkedIn handle", html);
         Assert.Contains("Upload", html);
     }
+
+    [Fact]
+    public async Task Home_page_always_offers_data_deletion()
+    {
+        var html = await factory.CreateClient().GetStringAsync("/");
+        Assert.Contains("Delete my data", html);
+    }
 }

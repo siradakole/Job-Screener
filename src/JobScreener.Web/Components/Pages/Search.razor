@@ -2,6 +2,7 @@
 @using JobScreener.Core.Data
 @using JobScreener.Core.Export
 @using JobScreener.Core.Search
+@using JobScreener.Core.Text
 @inject AppState State
 @inject SearchService Searcher
 @inject ApplicantStore Store
@@ -98,7 +99,7 @@
             {
                 <tr>
                     <td class="match">@s.Match%</td>
-                    <td><a href="@s.Job.Url" target="_blank" rel="noopener noreferrer">@s.Job.Title</a>
+                    <td>@if (UrlSafety.IsHttpUrl(s.Job.Url)) { <a href="@s.Job.Url" target="_blank" rel="noopener noreferrer">@s.Job.Title</a> } else { @s.Job.Title }
                         @if (s.Job.WorkType == WorkType.Unknown) { <span class="badge">type unknown</span> }</td>
                     <td>@s.Job.Company</td>
                     <td>@s.Job.Location</td>
