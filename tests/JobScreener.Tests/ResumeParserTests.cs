@@ -70,7 +70,7 @@ public class ResumeParserTests
     [Fact]
     public void Parse_returns_skills_titles_and_years()
     {
-        var text = "Samuel Adakole\nSoftware Engineer\nSoftware engineer with 7+ years of experience in C# and Android.";
+        var text = "Jane Doe\nSoftware Engineer\nSoftware engineer with 7+ years of experience in C# and Android.";
         var parsed = ResumeParser.Parse(text);
         Assert.Contains("C#", parsed.Skills);
         Assert.Contains("Android", parsed.Skills);

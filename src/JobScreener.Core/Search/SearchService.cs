@@ -25,7 +25,7 @@ public sealed class SearchService(IEnumerable<IJobSource> sources, TimeProvider 
 
         var warnings = outcomes.Where(o => o.Warning is not null).Select(o => new SourceWarning(o.Name, o.Warning!)).ToList();
         var raw = outcomes.ToDictionary(o => o.Name, o => o.Jobs.Count);
-        var merged = outcomes.SelectMany(o => o.Jobs).GroupBy(j => j.Url).Select(g => g.First());
+        var merged = outcomes.SelectMany(o => o.Jobs).GroupBy(j => j.Url.Length > 0 ? j.Url : $"{j.Source}|{j.Title}|{j.Company}").Select(g => g.First());
 
         var now = time.GetUtcNow();
         var scored = FilterEngine.Apply(merged, request, now)

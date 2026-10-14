@@ -33,7 +33,7 @@
 
 <div class="card">
     <h2>Delete my data</h2>
-    <p class="muted">Removes the resume text, skills and search history stored for the handle typed above.</p>
+    <p class="muted">Your resume text and skills are stored on this server. With no accounts, anyone who knows a handle can delete the data stored under it. This removes everything stored for the handle typed above.</p>
     <button class="danger" @onclick="DeleteData">Delete my data</button>
     @if (deleteMessage is not null) { <span class="muted"> @deleteMessage</span> }
 </div>
@@ -58,13 +58,13 @@
             await stream.CopyToAsync(buffer);
             buffer.Position = 0;
             var text = ResumeParser.ExtractText(buffer, e.File.Name);
-            if (string.IsNullOrWhiteSpace(text)) { error = "No text found in that file. Is it a scanned image?"; return; }
+            if (string.IsNullOrWhiteSpace(text)) { error = "No text found in that file. Is it a scanned image? You can still add your skills by hand below."; parsed = ResumeParser.Parse(""); return; }
             parsed = ResumeParser.Parse(text);
             status = $"Read {e.File.Name}.";
         }
-        catch (NotSupportedException ex) { error = ex.Message; }
-        catch (IOException) { error = "The file is too large (limit 5 MB)."; }
-        catch (Exception) { error = "Could not read that file. Try another PDF or DOCX."; }
+        catch (NotSupportedException ex) { error = ex.Message; parsed = ResumeParser.Parse(""); }
+        catch (IOException) { error = "The file is too large (limit 5 MB)."; parsed = ResumeParser.Parse(""); }
+        catch (Exception) { error = "Could not read that file. Try another PDF or DOCX, or add your skills by hand below."; parsed = ResumeParser.Parse(""); }
     }
 
     private async Task SaveAndContinue()
@@ -84,6 +84,7 @@
             Nav.NavigateTo("/search");
         }
         catch (ArgumentException ex) { error = ex.Message; }
+        catch (Exception) { error = "Something went wrong saving your profile. Try again."; }
     }
 
     private async Task DeleteData()
@@ -102,5 +103,6 @@
             deleteMessage = found ? "Deleted." : "No data found for that handle.";
         }
         catch (ArgumentException ex) { deleteMessage = ex.Message; }
+        catch (Exception) { deleteMessage = "Something went wrong deleting your data. Try again."; }
     }
 }

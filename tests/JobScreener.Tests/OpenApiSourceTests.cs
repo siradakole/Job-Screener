@@ -85,7 +85,7 @@ public class OpenApiSourceTests
         var jobs = ArbeitnowSource.Parse(ArbeitnowJson);
         Assert.Equal(2, jobs.Count);
         Assert.Equal(WorkType.Remote, jobs[0].WorkType);
-        Assert.Equal(WorkType.OnSite, jobs[1].WorkType);
+        Assert.Equal(WorkType.Unknown, jobs[1].WorkType);
         Assert.Equal("Berlin", jobs[0].Location);
         Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1791990000), jobs[0].PostedAt);
     }

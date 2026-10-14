@@ -44,6 +44,7 @@
             <select @bind="unit">
                 @foreach (var u in Enum.GetValues<LookBackUnit>()) { <option value="@u">@u</option> }
             </select>
+            <p class="muted">Open job feeds update slowly, so very short windows return few jobs.</p>
         </div>
         <div>
             <label>Job type</label>
@@ -60,6 +61,7 @@
             <label>Max applicants</label>
             <input type="number" min="1" @bind="maxApplicants" style="width:100px" />
             <label style="font-weight:400"><input type="checkbox" @bind="includeUnknown" /> include jobs with unknown applicant count</label>
+            <p class="muted">Only LinkedIn reports applicant counts; other sources count as unknown.</p>
         </div>
     </div>
 
@@ -173,7 +175,9 @@
     private string NoResultsHint() =>
         result!.Jobs.Count > 0 ? "Lower the minimum skills overlap."
         : result.RawCountBySource.Values.Sum() == 0 ? "No source returned postings. Check the warnings above."
-        : "Try a longer look-back, more job titles, or a higher max applicants.";
+        : "Try a longer look-back, more job titles, or a higher max applicants."
+          + (!includeUnknown && maxApplicants is not null
+              ? " Unchecking 'include jobs with unknown applicant count' hides every non-LinkedIn result." : "");
 
     private static string Ago(DateTimeOffset when)
     {

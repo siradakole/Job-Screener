@@ -64,9 +64,13 @@ docker build -t job-screener .
 docker run -p 8080:8080 -v jobscreener-data:/data job-screener
 ```
 
+Source toggles (all default to true except where noted): `Sources__Remotive`, `Sources__RemoteOk`, `Sources__Arbeitnow` (true/false) and `Sources__LinkedIn__RequestDelaySeconds` (seconds between LinkedIn requests, default 2).
+
 The container reads its settings from environment variables, for example `ConnectionStrings__Default` (defaults to `Data Source=/data/jobscreener.db`). A health check is available at `/healthz`.
 
 ## Hosting
+
+Put the app behind HTTPS (a reverse proxy or your host's TLS) because resumes are uploaded; the container serves plain HTTP on 8080 and has no rate limiting, so do not expose a public instance without one.
 
 This is a server app, so it cannot run on GitHub Pages. Use any host that runs a .NET or Docker container (Azure App Service, Fly.io, Render, a VPS).
 

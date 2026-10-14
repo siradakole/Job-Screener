@@ -4,7 +4,10 @@ using JobScreener.Core.Models;
 
 namespace JobScreener.Core.Sources;
 
-public sealed record LinkedInOptions(TimeSpan RequestDelay, int MaxDetailLookups = 25);
+public sealed record LinkedInOptions(TimeSpan RequestDelay, int MaxDetailLookups = 25, TimeSpan? DetailBudget = null)
+{
+    public TimeSpan EffectiveDetailBudget => DetailBudget ?? TimeSpan.FromSeconds(20);
+}
 
 /// <summary>
 /// Optional, best-effort reader of LinkedIn's public (logged-out) job pages. Disabled by default.
@@ -38,9 +41,12 @@ public sealed class LinkedInPublicSource(HttpClient http, LinkedInOptions option
         if (request.MaxApplicants is not null)
         {
             var lookups = 0;
+            var started = time.GetTimestamp();
             foreach (var id in byId.Keys.ToList())
             {
                 if (lookups++ >= options.MaxDetailLookups) break;
+                // Time budget so the whole source stays inside the per-source timeout; the rest keep a null count.
+                if (time.GetElapsedTime(started) >= options.EffectiveDetailBudget) break;
                 var html = await GetAsync($"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{id}", ct);
                 byId[id] = byId[id] with { ApplicantCount = ParseApplicantCount(html) };
                 await Task.Delay(options.RequestDelay, ct);
@@ -86,7 +92,7 @@ public sealed class LinkedInPublicSource(HttpClient http, LinkedInOptions option
             // The public page only has a date. LinkedIn filtered by time server-side, so place the posting inside the window.
             result.Add((id, new JobPosting("LinkedIn (public pages)", Text("base-search-card__title"),
                 Text("base-search-card__subtitle"), Text("job-search-card__location"), WorkType.Unknown,
-                notBefore.AddMinutes(1), null, link, "")));
+                notBefore.AddMinutes(5), null, link, "")));
         }
         return result;
     }

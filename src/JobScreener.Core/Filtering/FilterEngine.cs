@@ -31,7 +31,11 @@ public static class FilterEngine
         var wanted = r.Location.Trim().ToLowerInvariant();
         if (wanted.Length == 0 || OpenLocations.Contains(wanted)) return true;
         var have = job.Location.ToLowerInvariant();
-        return have.Contains(wanted) || OpenLocations.Any(have.Contains);
+        if (have.Contains(wanted)) return true;
+        // Whole-word match so "Remoteville" or "Globalville" do not count as open locations.
+        var words = System.Text.RegularExpressions.Regex.Split(have, @"[^\p{L}]+")
+            .Where(w => w.Length > 0).ToHashSet();
+        return OpenLocations.Any(words.Contains);
     }
 
     private static bool ApplicantsOk(JobPosting job, SearchRequest r)

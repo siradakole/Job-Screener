@@ -17,6 +17,15 @@ public class SearchServiceTests
     private static SearchService Service(params IJobSource[] sources) => new(sources, new FixedTime(Now));
 
     [Fact]
+    public async Task Jobs_with_empty_urls_are_not_collapsed_but_same_urls_are()
+    {
+        var a = FakeSource.Returning("A", Job("", title: ".NET Developer"), Job("", title: ".NET Developer II"),
+            Job("https://x/9"), Job("https://x/9"));
+        var result = await Service(a).RunAsync(Request(), new[] { "C#" }, CancellationToken.None);
+        Assert.Equal(3, result.Jobs.Count);
+    }
+
+    [Fact]
     public async Task Merges_filters_deduplicates_and_sorts_by_match()
     {
         var a = FakeSource.Returning("A", Job("https://x/1", description: "Python"), Job("https://x/2", description: "C# Azure"));

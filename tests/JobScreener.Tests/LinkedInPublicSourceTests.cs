@@ -69,6 +69,17 @@ public class LinkedInPublicSourceTests
     }
 
     [Fact]
+    public async Task Zero_detail_budget_skips_all_detail_lookups()
+    {
+        var handler = new FakeHandler(req => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(ListHtml) });
+        var source = new LinkedInPublicSource(new HttpClient(handler),
+            new LinkedInOptions(TimeSpan.Zero, 25, TimeSpan.Zero), new FixedTime(Now));
+        var jobs = await source.SearchAsync(Request(max: 50), CancellationToken.None);
+        Assert.Null(Assert.Single(jobs).ApplicantCount);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
     public async Task Http_429_raises_SourceBlockedException_without_retrying()
     {
         var handler = FakeHandler.Status((HttpStatusCode)429);

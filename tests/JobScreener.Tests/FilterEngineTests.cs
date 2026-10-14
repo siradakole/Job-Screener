@@ -71,6 +71,10 @@ public class FilterEngineTests
     [InlineData("Germany", "Worldwide", true)]
     [InlineData("Germany", "Remote", true)]
     [InlineData("Germany", "Austin, TX", false)]
+    [InlineData("Germany", "Anywhere", true)]
+    [InlineData("Germany", "Globalville, NJ", false)]
+    [InlineData("Germany", "Remoteville", false)]
+    [InlineData("Nigeria", "Remote - US only", true)] // known limit: the word "remote" counts as open
     public void Location_rules(string wanted, string jobLocation, bool kept)
     {
         var result = FilterEngine.Apply(new[] { Job(location: jobLocation) }, Request(location: wanted), Now);

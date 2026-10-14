@@ -33,7 +33,7 @@ public class DataTests : IDisposable
     [InlineData("@SiradaKole", "siradakole")]
     [InlineData("in/siradakole", "siradakole")]
     [InlineData("https://www.linkedin.com/in/siradakole/?isSelfProfile=true", "siradakole")]
-    [InlineData("linkedin.com/in/samuel-adakole-8b8679168", "samuel-adakole-8b8679168")]
+    [InlineData("linkedin.com/in/jane-doe-1a2b3c4d", "jane-doe-1a2b3c4d")]
     public void Normalize_extracts_the_handle(string input, string expected)
     {
         Assert.Equal(expected, HandleNormalizer.Normalize(input));

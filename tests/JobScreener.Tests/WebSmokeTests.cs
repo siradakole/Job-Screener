@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace JobScreener.Tests;
@@ -19,6 +20,25 @@ public class WebSmokeTests(WebApplicationFactory<Program> factory) : IClassFixtu
         var html = await client.GetStringAsync("/");
         Assert.Contains("LinkedIn handle", html);
         Assert.Contains("Upload", html);
+    }
+
+    [Fact]
+    public async Task Search_page_renders()
+    {
+        var response = await factory.CreateClient().GetAsync("/search");
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public void Default_sources_are_the_open_ones_only()
+    {
+        using var scope = factory.Services.CreateScope();
+        var names = scope.ServiceProvider.GetRequiredService<JobScreener.Core.Search.SearchService>().SourceNames;
+        Assert.Contains("Remotive", names);
+        Assert.Contains("Remote OK", names);
+        Assert.Contains("Arbeitnow", names);
+        Assert.DoesNotContain(names, n => n.StartsWith("LinkedIn"));
+        Assert.DoesNotContain(names, n => n.StartsWith("Adzuna"));
     }
 
     [Fact]
