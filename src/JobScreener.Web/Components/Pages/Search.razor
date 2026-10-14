@@ -1,0 +1,185 @@
+@page "/search"
+@using JobScreener.Core.Data
+@using JobScreener.Core.Export
+@using JobScreener.Core.Search
+@inject AppState State
+@inject SearchService Searcher
+@inject ApplicantStore Store
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+@if (!State.HasProfile)
+{
+    <h1>Search</h1>
+    <p>Start on the <a href="/">profile page</a> to enter your handle and upload a resume.</p>
+    return;
+}
+
+<h1>Search jobs</h1>
+<p class="muted">Profile: <strong>@State.Handle</strong> · @State.Skills.Count skills</p>
+
+<div class="card">
+    <label>Job titles</label>
+    <div class="chips">
+        @foreach (var t in titles)
+        {
+            <span class="chip">@t <button title="Remove" @onclick="() => titles.Remove(t)">×</button></span>
+        }
+    </div>
+    <input type="text" @bind="newTitle" @bind:event="oninput" @onkeydown="OnTitleKey" placeholder="Add a job title, press Enter" size="40" />
+    <button class="secondary" @onclick="AddTitle">Add</button>
+    @if (State.SuggestedTitles.Any(s => !titles.Contains(s)))
+    {
+        <p class="muted">Suggested:
+            @foreach (var s in State.SuggestedTitles.Where(s => !titles.Contains(s)))
+            { <button class="secondary" @onclick="() => titles.Add(s)">+ @s</button> }
+        </p>
+    }
+
+    <div class="row">
+        <div>
+            <label>Look back</label>
+            <input type="number" min="1" @bind="amount" style="width:80px" />
+            <select @bind="unit">
+                @foreach (var u in Enum.GetValues<LookBackUnit>()) { <option value="@u">@u</option> }
+            </select>
+        </div>
+        <div>
+            <label>Job type</label>
+            @foreach (var t in new[] { WorkType.Remote, WorkType.OnSite, WorkType.Hybrid })
+            {
+                <label style="display:inline;font-weight:400"><input type="checkbox" checked="@types.Contains(t)" @onchange="e => ToggleType(t, (bool)e.Value!)" /> @t &nbsp;</label>
+            }
+        </div>
+        <div>
+            <label>Location</label>
+            <input type="text" @bind="location" placeholder="Worldwide, Nigeria, Berlin..." />
+        </div>
+        <div>
+            <label>Max applicants</label>
+            <input type="number" min="1" @bind="maxApplicants" style="width:100px" />
+            <label style="font-weight:400"><input type="checkbox" @bind="includeUnknown" /> include jobs with unknown applicant count</label>
+        </div>
+    </div>
+
+    <label>Sources</label>
+    @foreach (var s in Searcher.SourceNames)
+    {
+        <label style="display:inline;font-weight:400"><input type="checkbox" checked="@sources.Contains(s)" @onchange="e => ToggleSource(s, (bool)e.Value!)" /> @s &nbsp;</label>
+    }
+    @if (Searcher.SourceNames.Any(n => n.StartsWith("LinkedIn")))
+    {
+        <p class="warn">LinkedIn public pages are enabled on this server. Scraping LinkedIn is against its terms of service and may be blocked at any time. Use at your own risk.</p>
+    }
+
+    <p><button @onclick="Run" disabled="@running">@(running ? "Searching..." : "Search")</button></p>
+    @if (error is not null) { <p class="warn">@error</p> }
+</div>
+
+@if (result is not null)
+{
+    @foreach (var w in result.Warnings) { <p class="warn">⚠ @w.Source: @w.Message</p> }
+    <p class="muted">Fetched @string.Join(", ", result.RawCountBySource.Select(kv => $"{kv.Key} {kv.Value}")) postings. @shown.Count of @result.Jobs.Count shown.</p>
+
+    <label>Minimum skills overlap: @minMatch%</label>
+    <input type="range" min="0" max="100" step="5" @bind="minMatch" @bind:event="oninput" />
+    <button class="secondary" @onclick="ExportCsv" disabled="@(shown.Count == 0)">Export CSV</button>
+
+    @if (shown.Count == 0)
+    {
+        <p>No jobs matched. @NoResultsHint()</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Skills overlap</th><th>Title</th><th>Company</th><th>Location</th><th>Posted</th><th>Applicants</th><th>Source</th></tr></thead>
+            <tbody>
+            @foreach (var s in shown)
+            {
+                <tr>
+                    <td class="match">@s.Match%</td>
+                    <td><a href="@s.Job.Url" target="_blank" rel="noopener noreferrer">@s.Job.Title</a>
+                        @if (s.Job.WorkType == WorkType.Unknown) { <span class="badge">type unknown</span> }</td>
+                    <td>@s.Job.Company</td>
+                    <td>@s.Job.Location</td>
+                    <td>@(s.Job.Source.StartsWith("LinkedIn", StringComparison.OrdinalIgnoreCase) ? "within search window" : Ago(s.Job.PostedAt))</td>
+                    <td>@(s.Job.ApplicantCount?.ToString() ?? "not available")</td>
+                    <td>@s.Job.Source</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private readonly List<string> titles = new();
+    private readonly List<WorkType> types = new() { WorkType.Remote };
+    private readonly HashSet<string> sources = new(StringComparer.OrdinalIgnoreCase);
+    private string newTitle = "";
+    private int amount = 24;
+    private LookBackUnit unit = LookBackUnit.Hours;
+    private string location = "Worldwide";
+    private int? maxApplicants = 100;
+    private bool includeUnknown = true;
+    private bool running;
+    private string? error;
+    private SearchResult? result;
+    private int minMatch;
+    private SearchRequest? lastRequest;
+
+    private IReadOnlyList<ScoredJob> shown => result is null
+        ? Array.Empty<ScoredJob>() : result.Jobs.Where(j => j.Match >= minMatch).ToList();
+
+    protected override void OnInitialized()
+    {
+        foreach (var s in Searcher.SourceNames) sources.Add(s);
+        titles.AddRange(State.SuggestedTitles.Take(2));
+    }
+
+    private void AddTitle()
+    {
+        var t = newTitle.Trim();
+        if (t.Length > 0 && !titles.Contains(t, StringComparer.OrdinalIgnoreCase)) titles.Add(t);
+        newTitle = "";
+    }
+
+    private void OnTitleKey(KeyboardEventArgs e) { if (e.Key == "Enter") AddTitle(); }
+    private void ToggleType(WorkType t, bool on) { types.Remove(t); if (on) types.Add(t); }
+    private void ToggleSource(string s, bool on) { if (on) sources.Add(s); else sources.Remove(s); }
+
+    private async Task Run()
+    {
+        error = null;
+        AddTitle();
+        if (amount < 1) { error = "Look back must be at least 1."; return; }
+        if (sources.Count == 0) { error = "Pick at least one source."; return; }
+        running = true; result = null;
+        try
+        {
+            lastRequest = new SearchRequest(titles.ToList(), types.ToList(), location, new LookBack(amount, unit),
+                maxApplicants, includeUnknown, sources.ToList());
+            result = await Searcher.RunAsync(lastRequest, State.Skills, CancellationToken.None);
+            await Store.RecordRunAsync(State.Handle, lastRequest, result);
+        }
+        catch (Exception ex) { error = "Search failed: " + ex.Message; }
+        finally { running = false; }
+    }
+
+    private async Task ExportCsv() =>
+        await Js.InvokeVoidAsync("downloadText", $"jobs-{DateTime.UtcNow:yyyyMMdd-HHmm}.csv", CsvExport.ToCsv(shown));
+
+    private string NoResultsHint() =>
+        result!.Jobs.Count > 0 ? "Lower the minimum skills overlap."
+        : result.RawCountBySource.Values.Sum() == 0 ? "No source returned postings. Check the warnings above."
+        : "Try a longer look-back, more job titles, or a higher max applicants.";
+
+    private static string Ago(DateTimeOffset when)
+    {
+        var span = DateTimeOffset.UtcNow - when;
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes} min ago";
+        if (span.TotalHours < 48) return $"{(int)span.TotalHours} h ago";
+        return $"{(int)span.TotalDays} d ago";
+    }
+}

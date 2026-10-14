@@ -1,0 +1,97 @@
+@page "/"
+@using JobScreener.Core.Data
+@using JobScreener.Core.Resume
+@inject AppState State
+@inject ApplicantStore Store
+@inject NavigationManager Nav
+
+<h1>Find jobs that fit your resume</h1>
+
+<div class="card">
+    <label for="handle">LinkedIn handle</label>
+    <input id="handle" type="text" @bind="handle" placeholder="siradakole or linkedin.com/in/siradakole" size="40" />
+    <p class="muted">Used as your identity in this app. Job-Screener does not read your LinkedIn profile.</p>
+
+    <label for="resume">Upload your resume (PDF or DOCX, up to 5 MB)</label>
+    <InputFile id="resume" OnChange="OnFileChosen" accept=".pdf,.docx" />
+    <p>@status</p>
+    @if (error is not null) { <p class="warn">@error</p> }
+</div>
+
+@if (parsed is not null)
+{
+    <div class="card">
+        <h2>What we found</h2>
+        <p><strong>Skills:</strong> @(parsed.Skills.Count == 0 ? "none recognised" : string.Join(", ", parsed.Skills))</p>
+        <p><strong>Suggested job titles:</strong> @(parsed.SuggestedTitles.Count == 0 ? "none" : string.Join(", ", parsed.SuggestedTitles))</p>
+        @if (parsed.YearsExperience is not null) { <p><strong>Experience mentioned:</strong> @parsed.YearsExperience years</p> }
+        <label for="extra">Add skills the resume missed (comma separated)</label>
+        <input id="extra" type="text" @bind="extraSkills" size="50" />
+        <p><button @onclick="SaveAndContinue" disabled="@(handle.Length == 0)">Continue to search</button></p>
+    </div>
+}
+
+@if (State.HasProfile)
+{
+    <div class="card">
+        <p>Saved profile: <strong>@State.Handle</strong></p>
+        <button class="danger" @onclick="DeleteData">Delete my data</button>
+        @if (deleted) { <span class="muted"> Your data was deleted.</span> }
+    </div>
+}
+
+@code {
+    private string handle = "";
+    private string extraSkills = "";
+    private string status = "";
+    private string? error;
+    private bool deleted;
+    private ParsedResume? parsed;
+
+    protected override void OnInitialized() => handle = State.Handle;
+
+    private async Task OnFileChosen(InputFileChangeEventArgs e)
+    {
+        error = null; deleted = false;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(5 * 1024 * 1024);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Position = 0;
+            var text = ResumeParser.ExtractText(buffer, e.File.Name);
+            if (string.IsNullOrWhiteSpace(text)) { error = "No text found in that file. Is it a scanned image?"; return; }
+            parsed = ResumeParser.Parse(text);
+            status = $"Read {e.File.Name}.";
+        }
+        catch (NotSupportedException ex) { error = ex.Message; }
+        catch (IOException) { error = "The file is too large (limit 5 MB)."; }
+        catch (Exception) { error = "Could not read that file. Try another PDF or DOCX."; }
+    }
+
+    private async Task SaveAndContinue()
+    {
+        error = null;
+        try
+        {
+            var key = HandleNormalizer.Normalize(handle);
+            var skills = parsed!.Skills
+                .Concat(extraSkills.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            await Store.UpsertAsync(key, parsed.Text, skills);
+            State.Handle = key;
+            State.Skills = skills;
+            State.SuggestedTitles = parsed.SuggestedTitles;
+            State.YearsExperience = parsed.YearsExperience;
+            Nav.NavigateTo("/search");
+        }
+        catch (ArgumentException ex) { error = ex.Message; }
+    }
+
+    private async Task DeleteData()
+    {
+        await Store.DeleteAsync(State.Handle);
+        State.Handle = ""; State.Skills = Array.Empty<string>(); State.SuggestedTitles = Array.Empty<string>();
+        parsed = null; deleted = true;
+    }
+}
