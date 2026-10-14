@@ -21,6 +21,9 @@ public static class CsvExport
         return sb.ToString();
     }
 
-    private static string Q(string value) =>
-        value.IndexOfAny(new[] { ',', '"', '\r', '\n' }) >= 0 ? "\"" + value.Replace("\"", "\"\"") + "\"" : value;
+    private static string Q(string value)
+    {
+        if (value.Length > 0 && "=+-@\t\r".IndexOf(value[0]) >= 0) value = "'" + value;
+        return value.IndexOfAny(new[] { ',', '"', '\r', '\n' }) >= 0 ? "\"" + value.Replace("\"", "\"\"") + "\"" : value;
+    }
 }

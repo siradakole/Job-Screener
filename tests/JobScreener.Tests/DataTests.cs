@@ -11,13 +11,14 @@ public class DataTests : IDisposable
 {
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
     private readonly ApplicantStore _store;
+    private readonly DbContextOptions<AppDbContext> _options;
 
     public DataTests()
     {
         _connection.Open();
-        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(_connection).Options;
-        using (var db = new AppDbContext(options)) db.Database.EnsureCreated();
-        _store = new ApplicantStore(new TestFactory(options));
+        _options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(_connection).Options;
+        using (var db = new AppDbContext(_options)) db.Database.EnsureCreated();
+        _store = new ApplicantStore(new TestFactory(_options));
     }
 
     public void Dispose() => _connection.Dispose();
@@ -66,7 +67,14 @@ public class DataTests : IDisposable
         var request = new SearchRequest(new[] { "x" }, Array.Empty<WorkType>(), "Worldwide", new LookBack(1, LookBackUnit.Hours), null);
         await _store.RecordRunAsync("sam", request, new SearchResult(Array.Empty<ScoredJob>(), Array.Empty<SourceWarning>(), new Dictionary<string, int>()));
 
+        using (var db = new AppDbContext(_options)) Assert.Equal(1, db.SearchRuns.Count());
+
         Assert.True(await _store.DeleteAsync("sam"));
+        using (var db = new AppDbContext(_options))
+        {
+            Assert.Equal(0, db.SearchRuns.Count());
+            Assert.Equal(0, db.Applicants.Count());
+        }
         Assert.Null(await _store.GetAsync("sam"));
         Assert.False(await _store.DeleteAsync("sam"));
     }
@@ -80,5 +88,15 @@ public class DataTests : IDisposable
         var lines = csv.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal("Match,Title,Company,Location,Type,Posted (UTC),Applicants,Source,Url", lines[0]);
         Assert.Equal("87,\"Dev, Senior\",\"Acme \"\"Co\"\"\",Remote,Remote,2026-10-14 11:00,,Src,https://x/1", lines[1]);
+    }
+
+    [Fact]
+    public void Csv_neutralises_formula_injection_but_leaves_normal_values()
+    {
+        var when = new DateTimeOffset(2026, 10, 14, 11, 0, 0, TimeSpan.Zero);
+        var evil = new JobPosting("Src", "=HYPERLINK(\"http://x\",\"y\")", "+1 Corp", "@home", WorkType.Remote, when, null, "https://x/2", "d");
+        var csv = CsvExport.ToCsv(new[] { new ScoredJob(evil, 5) });
+        var line = csv.Split("\r\n", StringSplitOptions.RemoveEmptyEntries)[1];
+        Assert.Equal("5,\"'=HYPERLINK(\"\"http://x\"\",\"\"y\"\")\",'+1 Corp,'@home,Remote,2026-10-14 11:00,,Src,https://x/2", line);
     }
 }
