@@ -20,7 +20,7 @@
 - Look-back unit is hours, days or weeks. "Worldwide" means no location restriction.
 - The match score is labelled "skills overlap" in the UI, never "AI match".
 - Resumes are personal data: never logged, deletable by the applicant.
-- Commit after every task. Commit messages end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
+- Commit after every task with a plain commit message (no co-author trailers).
 - Repo root: `C:\Users\DELL\source\repos\siradakole\Job-Screener` (remote `https://github.com/siradakole/Job-Screener`, branch `main`).
 
 ## File Structure
@@ -208,9 +208,7 @@ Expected: `Passed: 5`.
 
 ```bash
 git add -A
-git commit -m "feat(core): scaffold solution and add domain models
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat(core): scaffold solution and add domain models"
 ```
 
 ---
@@ -352,9 +350,7 @@ Expected: all pass. If `Matches` for `Backend Developer` vs `Back-End Engineer (
 
 ```bash
 git add -A
-git commit -m "feat(core): HTML cleaning and title matching
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat(core): HTML cleaning and title matching"
 ```
 
 ---
@@ -543,9 +539,7 @@ Expected: all pass.
 
 ```bash
 git add -A
-git commit -m "feat(core): FilterEngine for look-back, title, type, location, applicants
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat(core): FilterEngine for look-back, title, type, location, applicants"
 ```
 
 ---
@@ -563,7 +557,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 - [ ] **Step 1: Add packages**
 
 ```bash
-dotnet add src/JobScreener.Core package UglyToad.PdfPig
+dotnet add src/JobScreener.Core package PdfPig --version 0.1.16
 dotnet add src/JobScreener.Core package DocumentFormat.OpenXml
 ```
 
@@ -827,9 +821,7 @@ Expected: all pass. If the PDF test fails to extract text, check the PdfPig vers
 
 ```bash
 git add -A
-git commit -m "feat(core): skills dictionary and resume parser (PDF, DOCX)
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat(core): skills dictionary and resume parser (PDF, DOCX)"
 ```
 
 ---
@@ -942,9 +934,7 @@ Expected: all pass.
 
 ```bash
 git add -A
-git commit -m "feat(core): skills-overlap MatchScorer
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat(core): skills-overlap MatchScorer"
 ```
 
 ---
@@ -1331,9 +1321,7 @@ Expected: all pass. If the Remotive request-URL assertion fails, print `handler.
 
 ```bash
 git add -A
-git commit -m "feat(core): IJobSource and Remotive, Remote OK, Arbeitnow sources
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat(core): IJobSource and Remotive, Remote OK, Arbeitnow sources"
 ```
 
 ---
@@ -1486,9 +1474,7 @@ Expected: all pass.
 
 ```bash
 git add -A
-git commit -m "feat(core): Adzuna source
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat(core): Adzuna source"
 ```
 
 ---
@@ -1734,9 +1720,7 @@ Expected: all pass. The `PostedAt` test accepts `notBefore + 1 minute`, which is
 
 ```bash
 git add -A
-git commit -m "feat(core): optional LinkedIn public-page source (off by default)
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat(core): optional LinkedIn public-page source (off by default)"
 ```
 
 ---
@@ -1937,9 +1921,7 @@ Expected: all tests pass.
 
 ```bash
 git add -A
-git commit -m "feat(core): SearchService orchestrating sources, filters and scoring
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat(core): SearchService orchestrating sources, filters and scoring"
 ```
 
 ---
@@ -2256,9 +2238,7 @@ Expected: all pass. The test project needs `Microsoft.Data.Sqlite`, which arrive
 
 ```bash
 git add -A
-git commit -m "feat(core): SQLite persistence, handle normalizer and CSV export
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat(core): SQLite persistence, handle normalizer and CSV export"
 ```
 
 ---
@@ -2839,9 +2819,7 @@ Open `http://localhost:5080`. Check: the home page shows the handle field and up
 
 ```bash
 git add -A
-git commit -m "feat(web): Blazor Server UI with handle, resume upload, filters, results and CSV
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "feat(web): Blazor Server UI with handle, resume upload, filters, results and CSV"
 ```
 
 ---
@@ -2986,9 +2964,7 @@ If Docker is installed: `docker build -t job-screener .`. If it is not installed
 
 ```bash
 git add -A
-git commit -m "chore: Dockerfile, CI workflow and README
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git commit -m "chore: Dockerfile, CI workflow and README"
 git push origin main
 ```
 
