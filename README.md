@@ -40,6 +40,7 @@ LinkedIn's public list only carries a date, not a time, so those rows show "with
 
 ## Limits
 
+- Arbeitnow does not distinguish hybrid from on-site, so its non-remote jobs are labelled On-site.
 - Only LinkedIn reports applicant counts, so the max-applicants filter mostly affects LinkedIn results.
 - API feeds update slowly, so very short look-back windows return fewer jobs.
 - The match percentage is keyword overlap between resume skills and posting text, not an AI judgement.

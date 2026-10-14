@@ -35,7 +35,7 @@ public sealed class ArbeitnowSource(HttpClient http) : IJobSource
             var tags = string.Join(", ", JsonRead.Strings(j, "tags"));
             var description = HtmlText.ToPlain(JsonRead.Str(j, "description")) + (tags.Length > 0 ? " Tags: " + tags : "");
             list.Add(new JobPosting("Arbeitnow", JsonRead.Str(j, "title"), JsonRead.Str(j, "company_name"),
-                JsonRead.Str(j, "location"), JsonRead.Bool(j, "remote") ? WorkType.Remote : WorkType.Unknown,
+                JsonRead.Str(j, "location"), JsonRead.Bool(j, "remote") ? WorkType.Remote : WorkType.OnSite /* feed cannot tell hybrid from on-site */,
                 DateTimeOffset.FromUnixTimeSeconds(JsonRead.Long(j, "created_at")), null,
                 JsonRead.Str(j, "url"), description));
         }

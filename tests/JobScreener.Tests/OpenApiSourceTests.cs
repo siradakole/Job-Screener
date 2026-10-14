@@ -85,9 +85,21 @@ public class OpenApiSourceTests
         var jobs = ArbeitnowSource.Parse(ArbeitnowJson);
         Assert.Equal(2, jobs.Count);
         Assert.Equal(WorkType.Remote, jobs[0].WorkType);
-        Assert.Equal(WorkType.Unknown, jobs[1].WorkType);
+        Assert.Equal(WorkType.OnSite, jobs[1].WorkType);
         Assert.Equal("Berlin", jobs[0].Location);
         Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1791990000), jobs[0].PostedAt);
+    }
+
+    [Fact]
+    public void Remote_only_request_drops_non_remote_arbeitnow_postings()
+    {
+        var jobs = ArbeitnowSource.Parse(ArbeitnowJson);
+        var now = jobs[0].PostedAt.AddMinutes(5);
+        var request = new SearchRequest(Array.Empty<string>(), new[] { WorkType.Remote }, "Worldwide",
+            new LookBack(1, LookBackUnit.Hours), null);
+        var kept = JobScreener.Core.Filtering.FilterEngine.Apply(jobs, request, now);
+        Assert.All(kept, j => Assert.Equal(WorkType.Remote, j.WorkType));
+        Assert.DoesNotContain(kept, j => j.Title == jobs[1].Title);
     }
 
     [Fact]
