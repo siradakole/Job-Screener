@@ -1,0 +1,22 @@
+name: deploy-azure
+# Manual deployment to Azure App Service. Needs one repository secret and one variable:
+#   secret   AZURE_WEBAPP_PUBLISH_PROFILE  (the web app's publish profile XML)
+#   variable AZURE_WEBAPP_NAME             (the web app's name)
+# See DEPLOY.md.
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet test --configuration Release
+      - run: dotnet publish src/JobScreener.Web --configuration Release --output publish
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: publish

@@ -22,3 +22,4 @@ table { border-collapse:collapse; width:100%; background:#fff; }
 th, td { text-align:left; padding:.45rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; }
 .match { font-weight:700; }
 .badge { font-size:.75rem; background:#eee; border-radius:4px; padding:0 .35rem; color:var(--muted); }
+.notice { border-color: var(--warn); color: var(--warn); }

@@ -47,4 +47,12 @@ public class WebSmokeTests(WebApplicationFactory<Program> factory) : IClassFixtu
         var html = await factory.CreateClient().GetStringAsync("/");
         Assert.Contains("Delete my data", html);
     }
+
+    [Fact]
+    public async Task Home_page_shows_the_v1_demo_notice()
+    {
+        var html = await factory.CreateClient().GetStringAsync("/");
+        Assert.Contains("Demo notice", html);
+        Assert.Contains("no accounts", html);
+    }
 }
